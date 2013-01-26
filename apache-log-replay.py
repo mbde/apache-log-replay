@@ -7,6 +7,7 @@
 import sys
 import time
 import urllib2
+import operator
 from datetime import datetime
 from optparse import OptionParser
 
@@ -63,6 +64,7 @@ def _parse_logfile(filename):
         host = parts[HOST_INDEX]
         path = parts[PATH_INDEX]
         requests.append((request_time, host, path))
+    requests = sorted(requests, key=operator.itemgetter(0))    
     if not requests:
         print "Seems like I don't know how to parse this file!"
     return requests
