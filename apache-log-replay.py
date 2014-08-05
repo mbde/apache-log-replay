@@ -15,11 +15,12 @@ from optparse import OptionParser
 # specify position after splitting on spaces)
 HOST_INDEX = 0
 TIME_INDEX = 3
+HTTP_INDEX = 5
 PATH_INDEX = 6
 
-def main(filename, proxy, speedup=1):
+def main(filename, proxy, host, speedup=1):
     """Setup and start replaying."""    
-    requests = _parse_logfile(filename)
+    requests = _parse_logfile(filename, host)
     _setup_http_client(proxy)
     _replay(requests, speedup)
 
@@ -37,10 +38,10 @@ def _replay(requests, speedup):
         last_time = request_time
         url = "http://" + host + path
         try:
-            req_result = "OK"
-            urllib2.urlopen(url)
+            response = urllib2.urlopen(url)
+	    req_result = response.code
         except Exception:
-            req_result = "FAILED"
+            req_result = 'FAILED'
         print ("[%s] REQUEST: %s -- %s"
             % (request_time.strftime("%H:%M:%S"), url, req_result))
 
@@ -49,9 +50,10 @@ def _setup_http_client(proxy):
     proxy_config = {'http': proxy} if proxy else {}
     proxy_handler = urllib2.ProxyHandler(proxy_config)
     opener = urllib2.build_opener(proxy_handler)
+    opener.addheaders = [('User-Agent','Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:10.0.1) Gecko/20100101 Firefox/10.0.1 (IKDhPmJcdw)')]
     urllib2.install_opener(opener)
 
-def _parse_logfile(filename):
+def _parse_logfile(filename, host):
     """Parse the logfile and return a list with tuples of the form
     (<request time>, <requested host>, <requested url>)
     """
@@ -61,10 +63,11 @@ def _parse_logfile(filename):
         parts = line.split(" ")
         time_text = parts[TIME_INDEX][1:]
         request_time = datetime.strptime(time_text, "%d/%b/%Y:%H:%M:%S")
-        host = parts[HOST_INDEX]
-        path = parts[PATH_INDEX]
-        requests.append((request_time, host, path))
-    requests = sorted(requests, key=operator.itemgetter(0))    
+        request_host = host if host else parts[HOST_INDEX]
+        request_path = parts[PATH_INDEX]
+	if parts[HTTP_INDEX] == '\"GET':
+	    requests.append((request_time, request_host, request_path))
+    requests = sorted(requests, key=operator.itemgetter(0)) 
     if not requests:
         print "Seems like I don't know how to parse this file!"
     return requests
@@ -82,9 +85,14 @@ if __name__ == "__main__":
         dest='speedup',
         type='int',
         default=1)
+    parser.add_option('--host',
+        help='replace with original request host (changes the request url)',
+        dest='host',
+	type='string',
+        default=None)
     (options, args) = parser.parse_args()
     if len(args) == 1:
-        main(args[0], options.proxy, options.speedup)
+        main(args[0], options.proxy, options.host, options.speedup)
     else:
         parser.error("incorrect number of arguments")
         
