@@ -50,7 +50,7 @@ def _setup_http_client(proxy):
     proxy_config = {'http': proxy} if proxy else {}
     proxy_handler = urllib2.ProxyHandler(proxy_config)
     opener = urllib2.build_opener(proxy_handler)
-    opener.addheaders = [('User-Agent','Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:10.0.1) Gecko/20100101 Firefox/10.0.1 (IKDhPmJcdw)')]
+    opener.addheaders = [('User-Agent','Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:10.0.1) Gecko/20100101 Firefox/10.0.1')]
     urllib2.install_opener(opener)
 
 def _parse_logfile(filename, host):
